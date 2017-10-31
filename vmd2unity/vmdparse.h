@@ -17,6 +17,7 @@ struct VMD_MOTION_DATA {
 	std::vector<VMD_MOTION_KEYFRAME> keyframes;
 
 	void Rename(std::string bonedatapath);
-	void DumpNames(std::string path);
+	void DumpNames(std::string path), DumpData(std::string path);
+	void SortFrames();
 	static VMD_MOTION_DATA FromFile(const std::string& path);
 };

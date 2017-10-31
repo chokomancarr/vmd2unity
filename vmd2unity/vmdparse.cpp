@@ -1,21 +1,42 @@
 #include "stdafx.h"
 #include "vmdparse.h"
+#include "bones.h"
 #include <iostream>
 #include <fstream>
+#include <unordered_map>
+#include <algorithm>
 
 #define err(msg) { std::cout << msg << std::endl; \
 	return data; }
 #define RD(tar, sz) strm.read((char*)&tar, sz);
 
-void VMD_MOTION_DATA::Rename(std::string path) {
+#define GN auto pos = strm.tellg(); strm.getline(bcname, 100); bname = std::string(bcname);
 
+void VMD_MOTION_DATA::Rename(std::string path) {
+	std::unordered_map<std::string, std::string> map;
+	unsigned int c = 0; //dummy0, dummy1, ...
+	std::ifstream strm(path);
+	GN; //Armature name
+	while (true) {
+		GN;
+		if (bcname[0] == '&') continue;
+		if (bname == "-") break;
+		auto eq = bname.find('=');
+		if (eq == std::string::npos || bname.length() < (eq + 3)) continue;
+		std::string nm1 = bname.substr(0, eq - 2), nm2 = bname.substr(eq + 2);
+		map.emplace(nm1, (nm2=="<") ? nm1 : nm2);
+	}
+	for (auto& a : keyframes) {
+		a.name = map[a.name];
+	}
 }
 
 void VMD_MOTION_DATA::DumpNames(std::string path) {
+	std::cout << "Dumping names..." << std::endl;
 	std::ofstream strm(path);
-	strm << "&[name = newname]\n\
-&[name = <] means use original name\n\
-&[name = ] means do not use name" << std::endl;
+	strm << R"(&[name = newname]
+&[name = <] means use original name
+&[name = ] means do not use name)" << std::endl;
 	std::vector<std::string> names;
 	for (auto& a : keyframes) {
 		if (std::find(names.begin(), names.end(), a.name) == names.end()) {
@@ -23,6 +44,20 @@ void VMD_MOTION_DATA::DumpNames(std::string path) {
 			strm << a.name << " = " << std::endl;
 		}
 	}
+}
+
+void VMD_MOTION_DATA::DumpData(std::string path) {
+	std::cout << "Dumping data..." << std::endl;
+	std::ofstream strm(path);
+	for (auto& a : keyframes)
+		strm << std::to_string(a.frame) + " " + a.name + " " + a.position.string() + " " + a.rotation.string() << std::endl;
+}
+
+void VMD_MOTION_DATA::SortFrames() {
+	std::cout << "Sorting..." << std::endl;
+	std::sort(keyframes.begin(), keyframes.end(), [](VMD_MOTION_KEYFRAME a, VMD_MOTION_KEYFRAME b) {
+		return a.frame < b.frame;
+	});
 }
 
 VMD_MOTION_DATA VMD_MOTION_DATA::FromFile(const std::string& path) {
@@ -42,6 +77,7 @@ VMD_MOTION_DATA VMD_MOTION_DATA::FromFile(const std::string& path) {
 	std::cout << "Number of frames: " << std::to_string(data.frameCount) << std::endl;
 
 	//frames
+	data.keyframes.reserve(data.frameCount);
 	for (unsigned int i = 0; i < data.frameCount; i++) {
 		data.keyframes.push_back(VMD_MOTION_KEYFRAME());
 		auto& frm = data.keyframes[i];
@@ -63,6 +99,6 @@ VMD_MOTION_DATA VMD_MOTION_DATA::FromFile(const std::string& path) {
 	return data;
 }
 
-
+#undef GN
 #undef RD
 #undef err

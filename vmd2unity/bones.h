@@ -2,6 +2,9 @@
 #include <vector>
 #include <string>
 
+extern char bcname[100];
+extern std::string bname;
+
 struct Bone {
 	Bone(std::string nm) : name(nm) {}
 

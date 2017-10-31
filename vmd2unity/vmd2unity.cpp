@@ -7,9 +7,11 @@
 
 int main()
 {
-	auto data = VMD_MOTION_DATA::FromFile("C:\\Users\\Pua Kai\\Desktop\\shake it\\shakeit_miku.vmd");
-	//data.Rename("C:\\Users\\Pua Kai\\Desktop\\shake it\\shakeit_names.txt");
-	//auto bones = Armature::FromFile("C:\\Users\\Pua Kai\\Desktop\\bones.txt");
+	auto data = VMD_MOTION_DATA::FromFile("D:\\shake it\\shakeit_miku.vmd");
+	//data.SortFrames();
+	//data.DumpData("D:\\aa.txt");
+	//data.Rename("D:\\shake it\\shakeit_names.txt");
+	//auto bones = Armature::FromFile("D:\\bones.txt");
 
 
     return 0;

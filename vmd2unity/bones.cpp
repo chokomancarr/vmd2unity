@@ -18,7 +18,7 @@ char bcname[100];
 std::string bname;
 #define GN auto pos = strm.tellg(); strm.getline(bcname, 100); bname = std::string(bcname);
 
-bool _readbones(std::ifstream& strm, std::vector<Bone>& bones, int off) {
+bool _readbones(std::ifstream& strm, std::vector<Bone>& bones, unsigned int off) {
 	while (1) {
 		GN;
 		if (bname == "-") return false;
