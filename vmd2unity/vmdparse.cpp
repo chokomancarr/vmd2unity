@@ -13,6 +13,7 @@
 #define GN auto pos = strm.tellg(); strm.getline(bcname, 100); bname = std::string(bcname);
 
 void VMD_MOTION_DATA::Rename(std::string path) {
+	std::cout << "Reading map... ";
 	std::unordered_map<std::string, std::string> map;
 	unsigned int c = 0; //dummy0, dummy1, ...
 	std::ifstream strm(path);
@@ -22,35 +23,40 @@ void VMD_MOTION_DATA::Rename(std::string path) {
 		if (bcname[0] == '&') continue;
 		if (bname == "-") break;
 		auto eq = bname.find('=');
-		if (eq == std::string::npos || bname.length() < (eq + 3)) continue;
-		std::string nm1 = bname.substr(0, eq - 2), nm2 = bname.substr(eq + 2);
+		if (eq == std::string::npos || (bname.length() < (eq + 2))) continue;
+		std::string nm1 = bname.substr(0, eq - 1);
+		if (bname.length() == (eq + 2)) {
+			map.emplace(nm1, "dummy" + std::to_string(c++));
+		}
+		std::string nm2 = bname.substr(eq + 2);
 		map.emplace(nm1, (nm2=="<") ? nm1 : nm2);
 	}
+	std::cout << "done" << std::endl << "remapping names... ";
 	for (auto& a : keyframes) {
 		a.name = map[a.name];
 	}
+	std::cout << "done" << std::endl;
 }
 
 void VMD_MOTION_DATA::DumpNames(std::string path) {
-	std::cout << "Dumping names..." << std::endl;
+	std::cout << "Dumping names... ";
 	std::ofstream strm(path);
 	strm << R"(&[name = newname]
 &[name = <] means use original name
 &[name = ] means do not use name)" << std::endl;
-	std::vector<std::string> names;
-	for (auto& a : keyframes) {
-		if (std::find(names.begin(), names.end(), a.name) == names.end()) {
-			names.push_back(a.name);
-			strm << a.name << " = " << std::endl;
-		}
+	for (auto& a : keyframes_n) {
+		strm << a.first << " = " << std::endl;
 	}
+	strm << "-";
+	std::cout << "done" << std::endl;
 }
 
 void VMD_MOTION_DATA::DumpData(std::string path) {
-	std::cout << "Dumping data..." << std::endl;
+	std::cout << "Dumping data... ";
 	std::ofstream strm(path);
 	for (auto& a : keyframes)
-		strm << std::to_string(a.frame) + " " + a.name + " " + a.position.string() + " " + a.rotation.string() << std::endl;
+		strm << std::to_string(a.frame) + " " + a.name + " " + a.position.string() + " " + a.rotation.string() << std::string(a.bone? (" [" + a.bone->fullName + "]") : "") << std::endl;
+	std::cout << "done" << std::endl;
 }
 
 void VMD_MOTION_DATA::SortFrames() {
@@ -58,6 +64,22 @@ void VMD_MOTION_DATA::SortFrames() {
 	std::sort(keyframes.begin(), keyframes.end(), [](VMD_MOTION_KEYFRAME a, VMD_MOTION_KEYFRAME b) {
 		return a.frame < b.frame;
 	});
+}
+
+void _doattachbones(VMD_MOTION_DATA* md, std::vector<Bone>& bn) {
+	for (auto& a : bn) {
+		for (auto& b : md->keyframes) {
+			if (b.name == a.name) b.bone = &a;
+		}
+		_doattachbones(md, a.children);
+	}
+}
+
+void VMD_MOTION_DATA::AttachBones(Armature& arm) {
+	std::cout << "Attaching bones... ";
+	armature = &arm;
+	_doattachbones(this, arm.bones);
+	std::cout << "done" << std::endl;
 }
 
 VMD_MOTION_DATA VMD_MOTION_DATA::FromFile(const std::string& path) {
@@ -95,7 +117,11 @@ VMD_MOTION_DATA VMD_MOTION_DATA::FromFile(const std::string& path) {
 		//std::cout << std::to_string(frm.frame) + " " + frm.name + " " + frm.position.string() + " " + frm.rotation.string() << std::endl;
 	}
 
-	std::cout << "Parse VMD OK" << std::endl;
+	std::cout << "Parse VMD OK" << std::endl << "Grouping by name... ";
+	for (auto& a : data.keyframes) {
+		data.keyframes_n[a.name].push_back(&a);
+	}
+	std::cout << "done" << std::endl;
 	return data;
 }
 

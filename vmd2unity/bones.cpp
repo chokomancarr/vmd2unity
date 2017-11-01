@@ -18,9 +18,11 @@ char bcname[100];
 std::string bname;
 #define GN auto pos = strm.tellg(); strm.getline(bcname, 100); bname = std::string(bcname);
 
-bool _readbones(std::ifstream& strm, std::vector<Bone>& bones, unsigned int off) {
+bool _readbones(std::ifstream& strm, std::vector<Bone>& bones, unsigned int off, std::string pn) {
+	std::string ln;
 	while (1) {
 		GN;
+		if (strm.eof()) return false;
 		if (bname == "-") return false;
 		else if (bname.empty()) continue;
 		else {
@@ -30,11 +32,12 @@ bool _readbones(std::ifstream& strm, std::vector<Bone>& bones, unsigned int off)
 				return false;
 			}
 			if (i == off) {
-				bones.push_back(Bone(bname.substr(i + 1)));
+				ln = bname.substr(i + 1);
+				bones.push_back(Bone(ln, pn + ln));
 			}
 			else if (i > off) {
 				strm.seekg(pos);
-				if (!_readbones(strm, bones.back().children, i)) return false;
+				if (!_readbones(strm, bones.back().children, i, pn + ln + "/")) return false;
 			}
 			else {
 				strm.seekg(pos);
@@ -45,10 +48,12 @@ bool _readbones(std::ifstream& strm, std::vector<Bone>& bones, unsigned int off)
 }
 
 Armature Armature::FromFile(std::string path) {
+	std::cout << "Reading bone structure... ";
 	Armature arm = {};
-	std::ifstream strm(path);
+	std::ifstream strm(path, std::ios::binary);
 	strm >> arm.name;
-	_readbones(strm, arm.bones, 0);
+	_readbones(strm, arm.bones, 0, arm.name + "/");
+	std::cout << "done" << std::endl;
 	return arm;
 }
 

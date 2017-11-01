@@ -1,6 +1,6 @@
 #pragma once
 #include "vmdparse.h"
 
-class UnityExporter {
-	void Export(std::string path, std::string name);
+struct UnityExporter {
+	static void Export(VMD_MOTION_DATA& data, std::string path, std::string name, int fps = 24);
 };

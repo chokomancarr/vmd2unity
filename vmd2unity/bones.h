@@ -6,9 +6,9 @@ extern char bcname[100];
 extern std::string bname;
 
 struct Bone {
-	Bone(std::string nm) : name(nm) {}
+	Bone(std::string nm, std::string fnm) : name(nm), fullName(fnm) {}
 
-	std::string name;
+	std::string name, fullName;
 	std::vector<Bone> children;
 };
 
